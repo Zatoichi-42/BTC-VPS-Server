@@ -1,0 +1,22 @@
+Your job is to create working scripts for ubuntu 24.04.  Don't get fancy with newest features. 
+stay conservative with older but still current shell & script features
+do not over optimise 
+stay modular and easy to debug
+
+Understand the problem described in the issue
+Ask clarifying questions if necessary
+Understand prior art for this issue
+search  common existing failed cases and bug reports
+Think harder about how to break the issue down into a seriers of small, manageable tasks.
+Document your plan 
+
+- Make sure to follow guidelines & requirements
+solve the issue in small manageable steps, according to your plan
+
+Make sure to support older shells
+check existance of directories before working with them
+check existance of packages before installation
+check success of creation of directories & files
+check permissions for 2&3
+check success of installs
+at the end of every script print out the summary of achieved results, and envoke commands that illustrate the changes
