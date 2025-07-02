@@ -1,5 +1,6 @@
 Your job is to create working scripts for ubuntu 24.04.  Don't get fancy with newest features. 
 stay conservative with older but still current shell & script features
+use apt instead of PPA or pip
 do not over optimise 
 stay modular and easy to debug
 
