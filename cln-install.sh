@@ -112,3 +112,6 @@ echo "=== CLI getinfo via RPC socket ==="
 sudo -u bitcoin lightning-cli --rpc-file=${RPC_FILE} getinfo
 
 echo "Core Lightning ${CLN_VER#v} installation complete."
+
+echo "Here is your LN wallet"
+sudo -u bitcoin lightning-cli --rpc-file=/var/lib/cln/bitcoin/lightning-rpc newaddr
