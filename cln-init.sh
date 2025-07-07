@@ -1,28 +1,40 @@
-# 1. CPU: count cores and show model
-echo "=== CPU ==="
-lscpu | awk -F: '/^CPU\(s\)/{print "Cores:", $2} /^Model name/{print "Model:", $2}'
+### Step 1: Create and enable a 2 GiB swap file
 
-# 2. Memory: total RAM & swap
-echo
-echo "=== Memory ==="
+# 1a. Turn off all swap (safe if no swap exists)
+sudo swapoff -a
+
+# 1b. Allocate a 2 GiB file at /swapfile (falls back to dd if fallocate isn’t available)
+sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+
+# 1c. Lock it down so only root can read/write
+sudo chmod 600 /swapfile
+
+# 1d. Format it as swap space and enable it immediately
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# 1e. Make it permanent across reboots
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# 1f. Verify swap is active
+swapon --show
 free -h
 
-# 3. Disk: available space on /var (where your heavy data will live) and on your home dir
-echo
-echo "=== Disk (/var & $HOME) ==="
-df -h /var $HOME
 
-# 4. Inodes: ensure you’re not running out of filesystem inodes
-echo
-echo "=== Inodes ==="
-df -i /var $HOME
+### Step 2: Increase file-descriptor limit for lightningd
 
-# 5. FD limit: how many file descriptors your shell can open
-echo
-echo "=== File descriptor limit ==="
-ulimit -n
+# 2a. Create a systemd drop-in directory for the lightningd service
+sudo mkdir -p /etc/systemd/system/lightningd.service.d
 
-# 6. Load: current load averages
-echo
-echo "=== Load average ==="
-uptime
+# 2b. Add an override to bump the FD limit to 4096
+sudo tee /etc/systemd/system/lightningd.service.d/override.conf > /dev/null <<EOF
+[Service]
+LimitNOFILE=4096
+EOF
+
+# 2c. Reload systemd so it picks up the new override
+sudo systemctl daemon-reload
+
+# 2d. (Optional) Check the override; once lightningd is installed, this will show 4096
+systemctl show lightningd.service -p LimitNOFILE || echo "Override in place—service not installed yet."
+
