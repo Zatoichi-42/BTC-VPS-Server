@@ -14,7 +14,8 @@
 
   # ---------- Stratum listener for ASICs ----------
   "stratum": {
-    "listen_port": 23334,         # default; match miners’ URL
+    # default; match miners’ URL
+    "listen_port": 23334,         
     "version_roll_mask": "0x1fffe000",   
     # BIP-320 mask :contentReference[oaicite:8]{index=8}
     # scale to current fleet: 2×90 TH + 6 TH + room for hobby sticks 
