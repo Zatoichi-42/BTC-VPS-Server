@@ -53,7 +53,7 @@
 
   // ---------- Web/API ----------
   "api": {
-    "admin_password": "letmein1!",
+    "admin_password": "CHANGE2STRONG",
     "listen_address":"127.0.0.1",
     "listen_port": 4040,
     "modify_conf": false          // safer: edit by hand + git track
