@@ -44,8 +44,8 @@
   // ---------- Pool / DATUM behaviour ----------
   "datum": {
     "pooled_mining_only": true,   // keep revenue smooth on OCEAN
-    "pool_pass_full_users": false, // let miners send their own BTC addr/worker :contentReference[oaicite:9]{index=9}
-    "pool_pass_workers":   true  // we already pass full usernames
+    "pool_pass_full_users": true, // let miners send their own BTC addr/worker :contentReference[oaicite:9]{index=9}
+ #  "pool_pass_workers":   true  // we already pass full usernames
     /*  Leave “datum_pool_host” blank to use OCEAN’s default.
         To force the NA cluster explicitly:
 #        "datum_pool_host": "mine.ocean.xyz:3334"            */
