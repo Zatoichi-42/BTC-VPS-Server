@@ -1,0 +1,71 @@
+{
+  // ---------- Bitcoind RPC ----------
+  "bitcoind": {
+    // Use cookie auth if gateway runs under the same unix user;
+    // leave rpcuser/pass blank to enable it
+    "rpcuser": "",
+    "rpcpassword": "",
+    "rpcurl": "http://127.0.0.1:8332",
+    // Falls back to polling if blocknotify misses a signal
+    "notify_fallback": true       // README mentions killall-USR1 notify :contentReference[oaicite:7]{index=7}
+  },
+
+  // ---------- Stratum listener for ASICs ----------
+  "stratum": {
+    "listen_port": 23334,         // default; match miners’ URL
+    "version_roll_mask": "0x1fffe000",   // BIP-320 mask :contentReference[oaicite:8]{index=8}
+    /* scale to current fleet: 2×90 TH + 6 TH + room for hobby sticks */
+    "max_threads": 4,  // one thread ≈ ≤150 clients
+    "max_clients_per_thread": 64,
+    "max_clients": 256,
+    /* keep low-hash miners productive without flooding pool */
+    "vardiff_min": 4096,// good for 1 TH Bitaxe rigs
+    "vardiff_target_shares_min": 6 // balanced across mixed fleet
+    "vardiff_quickdiff_count": 6,
+    "vardiff_quickdiff_delta": 4,
+    /* latency & hygiene */
+    "share_stale_seconds": 120,
+    "fingerprint_miners": true,   // guard against dup username
+    "idle_timeout_no_subscribe": 15, 
+    "idle_timeout_no_shares": 7200, 
+    "idle_timeout_max_last_work": 0
+  },
+
+  // ---------- Mining / payout ----------
+  "mining": {
+    // Failsafe payout if pool is unreachable OR you flip to solo
+    "pool_address": "bc1qf6kklyuzuq7sg9dw8duqr7uu5xhl07xvvny4dk",
+    "always_pay_self": true, // even in solo-fallback mode
+    "coinbase_tag_primary":  "DATUM Gateway",
+    "coinbase_tag_secondary": "Rig1" 
+
+  },
+
+  // ---------- Pool / DATUM behaviour ----------
+  "datum": {
+    "pooled_mining_only": true,   // keep revenue smooth on OCEAN
+    "pool_pass_full_users": false, // let miners send their own BTC addr/worker :contentReference[oaicite:9]{index=9}
+    "pool_pass_workers":   true  // we already pass full usernames
+    /*  Leave “datum_pool_host” blank to use OCEAN’s default.
+        To force the NA cluster explicitly:
+#        "datum_pool_host": "mine.ocean.xyz:3334"            */
+  },
+
+  // ---------- Web/API ----------
+  "api": {
+    "admin_password": "letmein1!",
+    "listen_address":"127.0.0.1",
+    "listen_port": 4040,
+    "modify_conf": false          // safer: edit by hand + git track
+  },
+
+  // ---------- Logging ----------
+  "logger": {
+    "log_to_console": true,
+    "log_to_file": false,         // journald handles rotation
+    "log_file": "/var/log/datum_gateway.log",
+    "log_rotate_daily": true,
+    "log_level_console": 2,       // INFO
+    "log_level_file": 1           // DEBUG if you later enable file logs
+  }
+}
