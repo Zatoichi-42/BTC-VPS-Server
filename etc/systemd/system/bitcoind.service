@@ -1,0 +1,19 @@
+[Unit]
+Description=Bitcoin Knots daemon
+After=network.target
+
+[Service]
+User=bitcoin
+Group=bitcoin
+Type=simple
+[Service]
+User=bitcoin
+#could be /usr/local/bin/bitcoind- check!
+ExecStart=/usr/bin/bitcoind -conf=/etc/bitcoin/bitcoin.conf -datadir=/var/lib/bitcoin
+Restart=on-failure
+PrivateTmp=true
+TimeoutStartSec=600
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
