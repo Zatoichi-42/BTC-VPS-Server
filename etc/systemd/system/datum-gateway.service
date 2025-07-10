@@ -1,0 +1,16 @@
+[Unit]
+Description=DATUM Gateway (DHN)
+After=network.target bitcoind.service
+Wants=bitcoind.service
+
+[Service]
+ExecStart=/usr/local/bin/datum_gateway --config /etc/datum-gateway/config.json
+User=bitcoin
+#Run in the Bitcoin data directory so blocknotify can signal correctly
+WorkingDirectory=/var/lib/bitcoin
+Restart=on-failure
+RestartSec=5s
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target
