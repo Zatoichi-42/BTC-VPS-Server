@@ -1,92 +1,48 @@
 {
-  # ---------- Bitcoind RPC ----------
   "bitcoind": {
-    # Use cookie auth if gateway runs under the same unix user;
-    # leave rpcuser/pass blank to enable it
     "rpcuser": "",
     "rpcpassword": "",
     "rpcurl": "http://127.0.0.1:8332",
-    # Falls back to polling if blocknotify misses a signal
-    # README mentions killall-USR1 notify
-    "notify_fallback": true      
-
+    "notify_fallback": true
   },
-
-  # ---------- Stratum listener for ASICs ----------
   "stratum": {
-    # default; match miners’ URL
-    "listen_port": 23334,         
-    "version_roll_mask": "0x1fffe000",   
-    # BIP-320 mask :contentReference[oaicite:8]{index=8}
-    # scale to current fleet: 2×90 TH + 6 TH + room for hobby sticks 
-   # one thread ≈ ≤150 clients
-    "max_threads": 4,  
+    "listen_port": 23334,
+    "version_roll_mask": "0x1fffe000",
+    "max_threads": 4,
     "max_clients_per_thread": 64,
     "max_clients": 256,
-  
-  # keep low-hash miners productive without flooding pool 
-  # good for 1 TH Bitaxe rigs
-    "vardiff_min": 4096, 
-    
-  # balanced across mixed fleet
-    "vardiff_target_shares_min": 6 
+    "vardiff_min": 4096,
+    "vardiff_target_shares_min": 6,
     "vardiff_quickdiff_count": 6,
     "vardiff_quickdiff_delta": 4,
-  
-  # latency & hygiene 
     "share_stale_seconds": 120,
-    
-  # guard against dup username
-    "fingerprint_miners": true,   
-    "idle_timeout_no_subscribe": 15, 
-    "idle_timeout_no_shares": 7200, 
+    "fingerprint_miners": true,
+    "idle_timeout_no_subscribe": 15,
+    "idle_timeout_no_shares": 7200,
     "idle_timeout_max_last_work": 0
   },
-
-  # ---------- Mining / payout ----------
   "mining": {
-    # Failsafe payout if pool is unreachable OR you flip to solo
     "pool_address": "bc1qf6kklyuzuq7sg9dw8duqr7uu5xhl07xvvny4dk",
-    # even in solo-fallback mode
-    "always_pay_self": true, 
-    "coinbase_tag_primary":  "DATUM Gateway",
-    "coinbase_tag_secondary": "Rig1" 
-
+    "always_pay_self": true,
+    "coinbase_tag_primary": "DATUM Gateway",
+    "coinbase_tag_secondary": "Rig1"
   },
-
-  # ---------- Pool / DATUM behaviour ----------
   "datum": {
-    # keep revenue smooth on OCEAN
-    "pooled_mining_only": true,   
-    #  let miners send their own BTC addr/worker 
-    "pool_pass_full_users": true, 
- #  we already pass full usernames
- #  "pool_pass_workers":   true  
- #    Leave “datum_pool_host” blank to use OCEAN’s default.
- #       To force the NA cluster explicitly:
- #        "datum_pool_host": "mine.ocean.xyz:3334"           
+    "pooled_mining_only": true,
+    "pool_pass_full_users": true
   },
-
-  # ---------- Web/API ----------
   "api": {
     "admin_password": "CHANGE2STRONG",
-    "listen_address":"127.0.0.1",
+    "listen_address": "127.0.0.1",
     "listen_port": 4040,
-    #  safer: edit by hand + git track
-    "modify_conf": false          
+    "modify_conf": false
   },
-
-  # ---------- Logging ----------
   "logger": {
     "log_to_console": true,
-    
-    # journald handles rotation
-    "log_to_file": false,         
+    "log_to_file": false,
     "log_file": "/var/log/datum_gateway.log",
     "log_rotate_daily": true,
-    # info
-    "log_level_console": 2,       
-    # debug if you later enable file logs
-    "log_level_file": 1           
+    "log_level_console": 2,
+    "log_level_file": 1
   }
 }
