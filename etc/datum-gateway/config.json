@@ -5,7 +5,7 @@
     "rpccookiefile": "/var/lib/bitcoin/.cookie",
     "rpcurl": "http://127.0.0.1:8332",
     "notify_fallback": true,
-    "work_update_seconds": 1
+    "work_update_seconds": 5
   },
   "stratum": {
     "listen_port": 23334,
