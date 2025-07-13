@@ -108,10 +108,6 @@ done
 echo "✅ Datum helper scripts installed in $SCRIPT_DIR"
 
 echo "🛡️ STEP 13: Configuring UFW firewall for Datum Gateway"
-apt install -y ufw
-ufw --force reset
-ufw default deny incoming
-ufw default allow outgoing
 ufw allow 4040/tcp      # stats endpoint
 ufw allow 23334/tcp     # Stratum P2P
 ufw --force enable
