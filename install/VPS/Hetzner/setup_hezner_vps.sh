@@ -107,3 +107,6 @@ ls -ld /home/zatoichi
 
 echo "✅ VPS hardening complete. Test login via SSH as 'zatoichi' with your SSH key."
 
+echo "NOTE: This scripts assumes that you already added the keys during the server creation (recommended)"
+echo "if not, you must add the pub key in ~/.ssh/authorized_keys or you will be locked out"
+
