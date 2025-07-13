@@ -1,22 +1,21 @@
 #!/bin/bash
-
 echo "###############################################################"
 echo "# Installing Datum Gateway with best practices and validation #"
 echo "###############################################################"
 set -euo pipefail
 
-
 # ——————————————————————————————————————————————
 # Make sure we’re running as root
 if [ "$EUID" -ne 0 ]; then
-  echo "❌ This installer must be run as root. Please re-run with sudo:" >&2
-  echo "   sudo bash $0" >&2
+  echo "❌ This installer must be run as root."
+  echo "   Please re-run with sudo: sudo bash $0" >&2
   exit 1
 fi
 # ——————————————————————————————————————————————
 
 # --- Variables ---
-USER="zatoichi"
+ADMIN_USER="zatoichi"
+ADMIN_HOME="/home/$ADMIN_USER"
 CONFIG_URL="https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/etc/datum-gateway/config.json"
 SERVICE_URL="https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/etc/systemd/system/datum-gateway.service"
 LIBS=(cmake pkgconf libcurl4-openssl-dev libjansson-dev libmicrohttpd-dev libsodium-dev psmisc)
@@ -42,9 +41,9 @@ done
 echo "✅ Directories created."
 
 echo "🔧 STEP 4: Setting ownership & permissions on /var/lib/datum-gateway"
-chown -R "$USER":"$USER" /var/lib/datum-gateway
+chown -R "$ADMIN_USER":"$ADMIN_USER" /var/lib/datum-gateway
 chmod -R 700 /var/lib/datum-gateway
-echo "✅ /var/lib/datum-gateway → $USER:$USER, mode 700"
+echo "✅ /var/lib/datum-gateway → $ADMIN_USER:$ADMIN_USER, mode 700"
 
 echo "🧐 STEP 5: Verifying binary install"
 echo "   • which datum_gateway → $(which datum_gateway || echo 'NOT FOUND')"
@@ -91,23 +90,37 @@ ss -tlnp | grep datum_gateway || echo "   → No listening socket detected (chec
 echo
 
 echo "📂 STEP 12: Installing Datum helper scripts"
-SCRIPT_DIR="$HOME/scripts"
+SCRIPT_DIR="${ADMIN_HOME}/scripts"
+echo "   • Creating $SCRIPT_DIR"
 mkdir -p "$SCRIPT_DIR"
-for script in restart-datum.sh status-dDatum.sh; do
-  echo "🔗 Downloading $script"
+chown "$ADMIN_USER":"$ADMIN_USER" "$SCRIPT_DIR"
+for script in restartDatum.sh statusDatum.sh; do
+  echo "   • Downloading $script"
   curl -fsSL "https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/scripts/$script" \
     -o "$SCRIPT_DIR/$script"
   chmod +x "$SCRIPT_DIR/$script"
+  chown "$ADMIN_USER":"$ADMIN_USER" "$SCRIPT_DIR/$script"
 done
 echo "✅ Datum helper scripts installed in $SCRIPT_DIR"
 
+echo "🛡️ STEP 13: Configuring UFW firewall for Datum Gateway"
+apt install -y ufw
+ufw --force reset
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 4040/tcp      # stats endpoint
+ufw allow 23334/tcp     # Stratum P2P
+ufw --force enable
+echo "✅ UFW rules applied (ports 4040, 23334 allowed)"
+
 echo "📋 Post-install summary:"
 echo "   • /etc/datum-gateway/config.json (root:bitcoin, 640)"
-echo "   • /var/lib/datum-gateway (owned by $USER:$USER, 700)"
+echo "   • /var/lib/datum-gateway (owned by $ADMIN_USER:$ADMIN_USER, 700)"
 echo "   • /etc/systemd/system/datum-gateway.service"
 echo "   • datum_gateway binary at $(which datum_gateway)"
 echo "   • Service 'datum-gateway' is $(systemctl is-active datum-gateway)"
 echo "   • Helper scripts in $SCRIPT_DIR: $(ls $SCRIPT_DIR)"
+echo "   • UFW status:" && ufw status verbose
 echo
 
-echo "✅ INSTALLATION COMPLETE — Datum Gateway is up, running, and helper scripts are ready!"
+echo "✅ INSTALLATION COMPLETE — Datum Gateway is up, running, and helper scripts are in $SCRIPT_DIR"
