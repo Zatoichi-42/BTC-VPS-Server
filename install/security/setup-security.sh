@@ -79,8 +79,9 @@ declare -A sshd_settings=(
   ["ChallengeResponseAuthentication"]="no"
   ["AllowTcpForwarding"]="yes"
   ["GatewayPorts"]="yes"
+  ["ClientAliveInterval"]="300"
+  ["ClientAliveCountMax"]="720"
 )
-
 for key in "${!sshd_settings[@]}"; do
   val="${sshd_settings[$key]}"
   if grep -qE "^\s*#?\s*${key}\b" "$SSHD_FILE"; then
