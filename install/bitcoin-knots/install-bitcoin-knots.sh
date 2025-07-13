@@ -79,7 +79,7 @@ SCRIPT_DIR="$HOME/scripts"
 mkdir -p "$SCRIPT_DIR"
 
 # Download each helper script
-for script in statusBitcoin.sh statusNode.sh restartNode.sh; do
+for script in status-bitcoin.sh status-node.sh restart-node.sh; do
   echo "🔗 Downloading $script"
   sudo curl -fsSL https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/scripts/$script \
     -o "$SCRIPT_DIR/$script"
