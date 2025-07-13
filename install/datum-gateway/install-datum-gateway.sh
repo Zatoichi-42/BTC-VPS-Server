@@ -5,6 +5,16 @@ echo "# Installing Datum Gateway with best practices and validation #"
 echo "###############################################################"
 set -euo pipefail
 
+
+# ——————————————————————————————————————————————
+# Make sure we’re running as root
+if [ "$EUID" -ne 0 ]; then
+  echo "❌ This installer must be run as root. Please re-run with sudo:" >&2
+  echo "   sudo bash $0" >&2
+  exit 1
+fi
+# ——————————————————————————————————————————————
+
 # --- Variables ---
 USER="zatoichi"
 CONFIG_URL="https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/etc/datum-gateway/config.json"
