@@ -14,6 +14,10 @@ fi
 # ——————————————————————————————————————————————
 
 # --- Variables ---
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+echo "! WARNING! USING HARDCODED ADMIN USER ZATOICHI. CHANGE THE SCRIPT IF THIS IS WRONG"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 ADMIN_USER="zatoichi"
 ADMIN_HOME="/home/$ADMIN_USER"
 CONFIG_URL="https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/etc/datum-gateway/config.json"
