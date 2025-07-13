@@ -118,9 +118,8 @@ ufw default deny incoming
 ufw default allow outgoing
 ufw allow "${ssh_port}/tcp"
 ufw limit "${ssh_port}/tcp"
-ufw allow 8333/tcp
 ufw --force enable
-echo "✅ UFW rules set (SSH on $ssh_port, Bitcoin P2P on 8333)"
+echo "✅ UFW rules set (SSH on $ssh_port)"
 
 # --- STEP 11: Reload and restart services ---
 echo "🔁 STEP 11: Reloading daemon, restarting SSH & fail2ban"
