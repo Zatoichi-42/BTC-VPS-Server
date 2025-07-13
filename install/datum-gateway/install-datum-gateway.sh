@@ -98,7 +98,7 @@ SCRIPT_DIR="${ADMIN_HOME}/scripts"
 echo "   • Creating $SCRIPT_DIR"
 mkdir -p "$SCRIPT_DIR"
 chown "$ADMIN_USER":"$ADMIN_USER" "$SCRIPT_DIR"
-for script in restartDatum.sh statusDatum.sh; do
+for script in restart-datum.sh status-datum.sh; do
   echo "   • Downloading $script"
   curl -fsSL "https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/scripts/$script" \
     -o "$SCRIPT_DIR/$script"
