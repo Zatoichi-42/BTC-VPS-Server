@@ -64,9 +64,6 @@ sudo -u bitcoin bitcoin-cli -conf=/etc/bitcoin/bitcoin.conf -datadir=/var/lib/bi
 # --- STEP 8: Configure UFW for Bitcoin P2P ---
 echo "🛡️ STEP 8: Installing and configuring UFW firewall"
 sudo apt install -y ufw
-sudo ufw --force reset
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
 sudo ufw allow 8333/tcp
 sudo ufw reload
 
