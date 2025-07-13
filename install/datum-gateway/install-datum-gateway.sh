@@ -16,7 +16,7 @@ fi
 # --- Variables ---
 echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 echo "! WARNING! USING HARDCODED ADMIN USER ZATOICHI. CHANGE THE SCRIPT IF THIS IS WRONG"
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
 ADMIN_USER="zatoichi"
 ADMIN_HOME="/home/$ADMIN_USER"
