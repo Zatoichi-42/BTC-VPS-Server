@@ -57,10 +57,18 @@ fi
 usermod -aG sudo "$admin_user"
 echo "✅ '$admin_user' is in the sudo group"
 
-# --- STEP 5: Harden SSH config ---
-SSHD_FILE="/etc/ssh/sshd_config"
-echo "🔧 STEP 5: Configuring $SSHD_FILE"
+# --- STEP 5: Prompt for SSH public key and install ---
+echo "🔑 STEP 5: Install SSH public key for '$admin_user'"
+read -p "Paste your public SSH key (one line, e.g. ssh-ed25519 AAAA…): " pubkey
+su - "$admin_user" -c "mkdir -p ~/.ssh && chmod 700 ~/.ssh"
+echo "$pubkey" | tee /home/"$admin_user"/.ssh/authorized_keys >/dev/null
+chown "$admin_user":"$admin_user" /home/"$admin_user"/.ssh/authorized_keys
+chmod 600 /home/"$admin_user"/.ssh/authorized_keys
+echo "✅ SSH key installed for '$admin_user'"
 
+# --- STEP 6: Harden SSH config ---
+SSHD_FILE="/etc/ssh/sshd_config"
+echo "🔧 STEP 6: Configuring $SSHD_FILE"
 cp "$SSHD_FILE" "${SSHD_FILE}.bak.$(date +%s)"
 
 declare -A sshd_settings=(
@@ -83,73 +91,56 @@ for key in "${!sshd_settings[@]}"; do
   echo "🔧 Set $key to $val"
 done
 
-# --- STEP 6: Remove root login password ---
+# --- STEP 7: Remove root login password ---
 echo "🔒 Locking root password to disable login"
 passwd -l root
 
-# --- STEP 7: Install fail2ban ---
-echo "🛡️ STEP 7: Installing and configuring fail2ban"
+# --- STEP 8: Install fail2ban ---
+echo "🛡️ STEP 8: Installing and configuring fail2ban"
 apt install -y fail2ban
 cat <<EOF >/etc/fail2ban/jail.local
 [sshd]
 enabled = true
 EOF
 
-# --- STEP 8: Install unattended-upgrades ---
-echo "🔄 STEP 8: Installing unattended-upgrades for auto security updates"
+# --- STEP 9: Install unattended-upgrades ---
+echo "🔄 STEP 9: Installing unattended-upgrades for auto security updates"
 apt install -y unattended-upgrades apt-listchanges
 # Enable only security updates
 dpkg-reconfigure --frontend=noninteractive --priority=low unattended-upgrades
 echo "✅ Unattended-upgrades configured"
 
-# --- STEP 9: Configure UFW firewall ---
-echo "🛡️ STEP 9: Configuring UFW firewall"
+# --- STEP 10: Configure UFW firewall ---
+echo "🛡️ STEP 10: Configuring UFW firewall"
 apt install -y ufw
-
-# Reset to defaults
 ufw --force reset
-
-# Default policies
 ufw default deny incoming
 ufw default allow outgoing
-
-# Allow SSH and rate-limit it
 ufw allow "${ssh_port}/tcp"
 ufw limit "${ssh_port}/tcp"
-
-# Allow Bitcoin node incoming connections on port 8333
 ufw allow 8333/tcp
-echo "🔧 Allowed SSH port $ssh_port and Bitcoin port 8333"
-
-# Enable UFW
 ufw --force enable
-echo "✅ UFW is active"
+echo "✅ UFW rules set (SSH on $ssh_port, Bitcoin P2P on 8333)"
 
-# --- STEP 10: Reload and restart services ---
-echo "🔁 STEP 10: Reloading daemon, restarting SSH & fail2ban"
+# --- STEP 11: Reload and restart services ---
+echo "🔁 STEP 11: Reloading daemon, restarting SSH & fail2ban"
 systemctl daemon-reexec
 systemctl daemon-reload
 systemctl enable fail2ban
 systemctl restart fail2ban
 systemctl restart ssh
 
-# --- STEP 11: Final verification ---
+# --- STEP 12: Final verification ---
 echo "✅ Final status checks:"
 echo -n "🔍 SSH config syntax: " && sshd -t && echo "OK"
 echo "🔍 fail2ban active: $(systemctl is-active fail2ban)"
-echo "🔍 ssh service active: $(systemctl is-active ssh)"
+echo "🔍 SSH service active: $(systemctl is-active ssh)"
 echo "🔍 UFW status:" && ufw status verbose
-echo "🔍 unattended-upgrades status: $(systemctl is-active unattended-upgrades)"
-echo "🔍 SSH port now: $ssh_port"
+echo "🔍 unattended-upgrades active: $(systemctl is-active unattended-upgrades)"
 echo "👥 Sudo group members: $(getent group sudo)"
 echo "📁 Home dir for $admin_user: $(ls -ld /home/$admin_user)"
 echo "🔐 Root account status: $(passwd -S root | awk '{print $2}')"
 
 echo ""
-echo "⚠️ Don’t forget to add your public SSH key to /home/$admin_user/.ssh/authorized_keys"
-echo "⚠️ Then connect with: ssh -p $ssh_port $admin_user@your.vps.ip"
-echo ""
-echo "✅ Fully hardened VPS setup complete."
-echo "Firewall Setup:"
-ufw status
-
+echo "✅ Everything’s set! Connect with:"
+echo "   ssh -i ~/.ssh/id_ed25519 -p $ssh_port $admin_user@<your.vps.ip>"
