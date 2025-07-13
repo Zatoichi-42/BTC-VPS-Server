@@ -93,7 +93,7 @@ echo
 echo "📂 STEP 12: Installing Datum helper scripts"
 SCRIPT_DIR="$HOME/scripts"
 mkdir -p "$SCRIPT_DIR"
-for script in restartDatum.sh statusDatum.sh; do
+for script in restart-datum.sh status-dDatum.sh; do
   echo "🔗 Downloading $script"
   curl -fsSL "https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/scripts/$script" \
     -o "$SCRIPT_DIR/$script"
