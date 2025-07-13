@@ -37,11 +37,15 @@ sudo chmod 600 /etc/bitcoin/bitcoin.conf
 echo "✅ Config installed:"
 sudo head -n 10 /etc/bitcoin/bitcoin.conf
 
+
 # --- STEP 5: Download and install bitcoind.service ---
 echo "🛠️ Installing bitcoind systemd service from GitHub"
 sudo curl -fsSL https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/main/etc/systemd/system/bitcoind.service \
   -o /etc/systemd/system/bitcoind.service
 sudo chmod 644 /etc/systemd/system/bitcoind.service
+
+echo "✅ Service Config installed:"
+sudo head -n 10 /etc/systemd/system/bitcoind.service
 
 # --- STEP 6: Enable + Start Service ---
 echo "🚀 Enabling and starting bitcoind service"
