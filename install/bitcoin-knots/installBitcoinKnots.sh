@@ -35,7 +35,7 @@ sudo curl -fsSL https://raw.githubusercontent.com/Zatoichi-42/BTC-VPS-Server/mai
 sudo chown bitcoin:bitcoin /etc/bitcoin/bitcoin.conf
 sudo chmod 600 /etc/bitcoin/bitcoin.conf
 echo "✅ Config installed:"
-head -n 10 /etc/bitcoin/bitcoin.conf
+sudo head -n 10 /etc/bitcoin/bitcoin.conf
 
 # --- STEP 5: Download and install bitcoind.service ---
 echo "🛠️ Installing bitcoind systemd service from GitHub"
