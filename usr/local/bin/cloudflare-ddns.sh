@@ -10,6 +10,13 @@ API_TOKEN="your_api_token_here"
 IP=$(curl -s https://ifconfig.me)
 echo "✅ Current Public IP explicitly is: $IP"
 
+#########################33
+# TEST 
+#IP="1.1.1.1"
+#echo "TESTING WITH IP $IP"
+###########################
+
+
 # ======= Explicitly retrieving DNS Record ID via Cloudflare API =======
 echo "[DDNS] 🔍 Explicitly retrieving DNS Record ID..."
 RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=A&name=$DOMAIN" \
