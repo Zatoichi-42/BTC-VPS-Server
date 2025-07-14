@@ -9,19 +9,18 @@
   },
   "stratum": {
     "listen_port": 23334,
-    "version_roll_mask": "0x1fffe000",
     "max_threads": 4,
     "max_clients_per_thread": 64,
-    "max_clients": 256,
-    "vardiff_min": 4096,
-    "vardiff_target_shares_min": 6,
+    "max_clients": 128,
+    "vardiff_min": 8192,
+    "vardiff_target_shares_min": 8,
     "vardiff_quickdiff_count": 6,
-    "vardiff_quickdiff_delta": 4,
+    "vardiff_quickdiff_delta": 3,
     "share_stale_seconds": 120,
     "fingerprint_miners": true,
     "idle_timeout_no_subscribe": 15,
-    "idle_timeout_no_shares": 7200,
-    "idle_timeout_max_last_work": 0
+    "idle_timeout_no_shares": 3800,
+    "idle_timeout_max_last_work": 6000
   },
   "mining": {
     "pool_address": "bc1qf6kklyuzuq7sg9dw8duqr7uu5xhl07xvvny4dk",
