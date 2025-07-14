@@ -1,7 +1,7 @@
 {
   "bitcoind": {
     "rpcuser": "",
-    "rpcpassword": "",  //chatgpt how to obtain password, it's not straightforward copy
+    "rpcpassword": "",  
     "rpccookiefile": "/var/lib/bitcoin/.cookie",
     "rpcurl": "http://127.0.0.1:8332",
     "notify_fallback": true,
