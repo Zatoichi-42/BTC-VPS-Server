@@ -130,6 +130,15 @@ systemctl enable fail2ban
 systemctl restart fail2ban
 systemctl restart ssh
 
+echo "BONUS - SETUP SWAP FILE - can reduce to 4GB"
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+sudo fallocate -l 20G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+
 # --- STEP 12: Final verification ---
 echo "✅ Final status checks:"
 echo -n "🔍 SSH config syntax: " && sshd -t && echo "OK"
