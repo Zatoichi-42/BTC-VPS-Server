@@ -1,0 +1,593 @@
+#!/bin/bash
+
+# Core Lightning (CLN) Binary Installation Script
+# This script downloads and installs CLN pre-compiled binary with Bitcoin Knots integration
+# Part 1 of 3: Base CLN installation using official binary release
+
+set -e
+
+# Configuration variables
+CLN_VERSION="25.05"
+CLN_BINARY_URL="https://github.com/ElementsProject/lightning/releases/download/v${CLN_VERSION}/clightning-v${CLN_VERSION}-Ubuntu-24.04-amd64.tar.xz"
+CLN_USER="lightning"
+CLN_GROUP="lightning"
+CLN_DATA_DIR="/var/lib/lightning"
+CLN_CONFIG_FILE="/etc/lightningd/lightningd.conf"
+CLN_LOG_FILE="/var/log/lightningd.log"
+BITCOIN_RPC_USER=""
+BITCOIN_RPC_PASSWORD=""
+BITCOIN_RPC_HOST="127.0.0.1"
+BITCOIN_RPC_PORT="8332"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Function to check if running as root
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        print_error "This script must be run as root"
+        exit 1
+    fi
+}
+
+# Function to get Bitcoin RPC credentials
+get_rpc_credentials() {
+    echo "Bitcoin RPC Configuration"
+    echo "========================"
+    
+    read -p "Enter Bitcoin RPC username: " BITCOIN_RPC_USER
+    read -s -p "Enter Bitcoin RPC password: " BITCOIN_RPC_PASSWORD
+    echo
+    
+    if [[ -z "$BITCOIN_RPC_USER" || -z "$BITCOIN_RPC_PASSWORD" ]]; then
+        print_error "RPC credentials cannot be empty"
+        exit 1
+    fi
+}
+
+# Function to verify Bitcoin Knots is running
+verify_bitcoin() {
+    print_status "Verifying Bitcoin Knots installation..."
+    
+    if ! command -v /usr/bin/bitcoind &> /dev/null; then
+        print_error "Bitcoin Knots not found at /usr/bin/bitcoind"
+        exit 1
+    fi
+    
+    if [[ ! -d /var/lib/bitcoin ]]; then
+        print_error "Bitcoin data directory not found at /var/lib/bitcoin"
+        exit 1
+    fi
+    
+    # Test RPC connection
+    if ! curl -s --user "$BITCOIN_RPC_USER:$BITCOIN_RPC_PASSWORD" \
+        --data-binary '{"jsonrpc": "1.0", "id": "test", "method": "getblockchaininfo", "params": []}' \
+        -H 'content-type: text/plain;' \
+        http://$BITCOIN_RPC_HOST:$BITCOIN_RPC_PORT/ &> /dev/null; then
+        print_warning "Could not connect to Bitcoin RPC. Make sure Bitcoin is running and RPC credentials are correct."
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    else
+        print_status "Bitcoin RPC connection verified"
+    fi
+}
+
+# Function to install dependencies
+install_dependencies() {
+    print_status "Installing minimal dependencies..."
+    
+    # Update package list
+    apt-get update
+    
+    # Install only essential packages for binary installation
+    apt-get install -y \
+        curl \
+        wget \
+        jq \
+        python3 \
+        python3-pip \
+        sqlite3 \
+        net-tools \
+        xz-utils
+    
+    print_status "Dependencies installed"
+}
+
+# Function to download and install CLN binary
+install_cln_binary() {
+    print_status "Downloading Core Lightning v$CLN_VERSION binary..."
+    
+    # Create temporary directory
+    TEMP_DIR=$(mktemp -d)
+    cd $TEMP_DIR
+    
+    # Download CLN binary
+    print_status "Downloading from: $CLN_BINARY_URL"
+    if ! wget -q --show-progress "$CLN_BINARY_URL"; then
+        print_error "Failed to download CLN binary from GitHub releases"
+        exit 1
+    fi
+    
+    # Extract filename from URL
+    BINARY_FILE=$(basename "$CLN_BINARY_URL")
+    
+    # Download checksums for verification (optional but recommended)
+    CHECKSUM_URL="https://github.com/ElementsProject/lightning/releases/download/v${CLN_VERSION}/SHA256SUMS"
+    if wget -q "$CHECKSUM_URL"; then
+        if sha256sum --check --ignore-missing SHA256SUMS 2>/dev/null; then
+            print_status "Binary checksum verified ✓"
+        else
+            print_warning "Checksum verification failed or file not in SHA256SUMS"
+        fi
+    else
+        print_warning "Could not download checksums for verification"
+    fi
+    
+    # Extract binary
+    print_status "Extracting CLN binary..."
+    tar -xf "$BINARY_FILE"
+    
+    # Install to system - the tar contains usr/ directory structure
+    print_status "Installing CLN to system..."
+    if [[ -d "usr" ]]; then
+        cp -r usr/* /usr/local/
+    else
+        print_error "Unexpected archive structure"
+        ls -la
+        exit 1
+    fi
+    
+    # Create symlinks for easier access
+    ln -sf /usr/local/bin/lightningd /usr/bin/lightningd 2>/dev/null || true
+    ln -sf /usr/local/bin/lightning-cli /usr/bin/lightning-cli-orig 2>/dev/null || true
+    
+    # Cleanup
+    cd /
+    rm -rf $TEMP_DIR
+    
+    # Verify installation
+    if ! command -v lightningd &> /dev/null; then
+        print_error "CLN installation failed - lightningd not found in PATH"
+        exit 1
+    fi
+    
+    # Show version
+    CLN_INSTALLED_VERSION=$(lightningd --version 2>/dev/null | head -1 || echo "unknown")
+    print_status "CLN installed successfully: $CLN_INSTALLED_VERSION"
+}
+
+# Function to create CLN user and directories
+create_cln_user() {
+    print_status "Creating CLN user and directories..."
+    
+    # Create group if it doesn't exist
+    if ! getent group $CLN_GROUP > /dev/null 2>&1; then
+        groupadd $CLN_GROUP
+    fi
+    
+    # Create user if it doesn't exist
+    if ! id "$CLN_USER" &>/dev/null; then
+        useradd -r -g $CLN_GROUP -d $CLN_DATA_DIR -s /bin/bash $CLN_USER
+    fi
+    
+    # Create directories
+    mkdir -p $CLN_DATA_DIR
+    mkdir -p /etc/lightningd
+    mkdir -p /var/log/lightningd
+    
+    # Set permissions
+    chown $CLN_USER:$CLN_GROUP $CLN_DATA_DIR
+    chown $CLN_USER:$CLN_GROUP /etc/lightningd
+    chown $CLN_USER:$CLN_GROUP /var/log/lightningd
+    chmod 700 $CLN_DATA_DIR
+    chmod 755 /etc/lightningd
+    chmod 755 /var/log/lightningd
+}
+
+# Function to create CLN configuration
+create_cln_config() {
+    print_status "Creating CLN configuration..."
+    
+    cat > $CLN_CONFIG_FILE << EOF
+# Core Lightning Base Configuration
+# Network
+network=bitcoin
+bind-addr=127.0.0.1:9735
+
+# Bitcoin backend
+bitcoin-datadir=/var/lib/bitcoin
+bitcoin-rpcuser=$BITCOIN_RPC_USER
+bitcoin-rpcpassword=$BITCOIN_RPC_PASSWORD
+bitcoin-rpcconnect=$BITCOIN_RPC_HOST
+bitcoin-rpcport=$BITCOIN_RPC_PORT
+
+# Logging
+log-level=info
+log-file=$CLN_LOG_FILE
+
+# Database
+wallet=sqlite3://$CLN_DATA_DIR/lightningd.sqlite3
+
+# Security
+daemon
+
+# Plugin directory
+plugin-dir=/usr/local/libexec/c-lightning/plugins
+
+# RPC
+rpc-file=$CLN_DATA_DIR/lightning-rpc
+EOF
+    
+    chown $CLN_USER:$CLN_GROUP $CLN_CONFIG_FILE
+    chmod 600 $CLN_CONFIG_FILE
+}
+
+# Function to create systemd service
+create_systemd_service() {
+    print_status "Creating systemd service..."
+    
+    cat > /etc/systemd/system/lightningd.service << EOF
+[Unit]
+Description=Core Lightning daemon
+Requires=bitcoind.service
+After=bitcoind.service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=notify
+User=$CLN_USER
+Group=$CLN_GROUP
+ExecStart=/usr/local/bin/lightningd --conf=$CLN_CONFIG_FILE
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lightningd
+
+# Process management
+TimeoutSec=300
+KillMode=mixed
+KillSignal=SIGINT
+SendSIGKILL=yes
+
+# Directory creation and permissions
+RuntimeDirectory=lightningd
+RuntimeDirectoryMode=0710
+StateDirectory=lightningd
+StateDirectoryMode=0710
+LogsDirectory=lightningd
+LogsDirectoryMode=0710
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$CLN_DATA_DIR /var/log/lightningd
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    systemctl daemon-reload
+    systemctl enable lightningd
+}
+
+# Function to create log rotation
+setup_log_rotation() {
+    print_status "Setting up log rotation..."
+    
+    cat > /etc/logrotate.d/lightningd << EOF
+$CLN_LOG_FILE {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 $CLN_USER $CLN_GROUP
+    postrotate
+        systemctl reload lightningd
+    endscript
+}
+EOF
+}
+
+# Function to create CLI wrapper
+create_cli_wrapper() {
+    print_status "Creating CLI wrapper..."
+    
+    cat > /usr/local/bin/lightning-cli << 'EOF'
+#!/bin/bash
+# CLN CLI wrapper for easier access
+
+# Check if lightningd is running
+if ! systemctl is-active --quiet lightningd; then
+    echo "Warning: lightningd service is not running"
+    echo "Start it with: sudo systemctl start lightningd"
+    echo ""
+fi
+
+# Execute lightning-cli as the lightning user
+exec sudo -u lightning /usr/local/bin/lightning-cli "$@"
+EOF
+    
+    chmod +x /usr/local/bin/lightning-cli
+}
+
+# Function to create management script
+create_management_script() {
+    print_status "Creating CLN management script..."
+    
+    # Create scripts directory if it doesn't exist
+    mkdir -p /home/$SUDO_USER/scripts
+    chown $SUDO_USER:$SUDO_USER /home/$SUDO_USER/scripts
+    
+    cat > /home/$SUDO_USER/scripts/cln-manage << 'EOF'
+#!/bin/bash
+
+# CLN Management Script
+
+SERVICE_NAME="lightningd"
+CLN_USER="lightning"
+LOG_FILE="/var/log/lightningd.log"
+
+case $1 in
+    start)
+        echo "Starting CLN service..."
+        systemctl start $SERVICE_NAME
+        ;;
+    stop)
+        echo "Stopping CLN service..."
+        systemctl stop $SERVICE_NAME
+        ;;
+    restart)
+        echo "Restarting CLN service..."
+        systemctl restart $SERVICE_NAME
+        ;;
+    status)
+        echo "Service status:"
+        systemctl status $SERVICE_NAME --no-pager
+        echo ""
+        echo "Process info:"
+        ps aux | grep lightningd | grep -v grep || echo "No lightningd process found"
+        ;;
+    logs)
+        echo "Showing CLN logs (last 50 lines)..."
+        journalctl -u $SERVICE_NAME -n 50 --no-pager
+        ;;
+    tail)
+        echo "Following CLN logs (Ctrl+C to exit)..."
+        journalctl -u $SERVICE_NAME -f
+        ;;
+    info)
+        echo "Getting node info..."
+        sudo -u $CLN_USER /usr/local/bin/lightning-cli getinfo
+        ;;
+    version)
+        echo "CLN version:"
+        /usr/local/bin/lightningd --version
+        ;;
+    backup)
+        echo "Creating backup of CLN data..."
+        BACKUP_DIR="/tmp/cln-backup-$(date +%Y%m%d_%H%M%S)"
+        mkdir -p $BACKUP_DIR
+        cp -r /var/lib/lightning/* $BACKUP_DIR/ 2>/dev/null || true
+        tar -czf "${BACKUP_DIR}.tar.gz" -C /tmp $(basename $BACKUP_DIR)
+        rm -rf $BACKUP_DIR
+        echo "Backup created: ${BACKUP_DIR}.tar.gz"
+        ;;
+    config)
+        echo "Showing current configuration:"
+        echo "Config file: /etc/lightningd/lightningd.conf"
+        cat /etc/lightningd/lightningd.conf
+        ;;
+    *)
+        echo "CLN Management Script"
+        echo "===================="
+        echo "Usage: $0 {start|stop|restart|status|logs|tail|info|version|backup|config}"
+        echo ""
+        echo "Commands:"
+        echo "  start    - Start CLN service"
+        echo "  stop     - Stop CLN service"  
+        echo "  restart  - Restart CLN service"
+        echo "  status   - Show service status"
+        echo "  logs     - Show recent logs"
+        echo "  tail     - Follow logs in real-time"
+        echo "  info     - Show node information"
+        echo "  version  - Show CLN version"
+        echo "  backup   - Create backup of CLN data"
+        echo "  config   - Show current configuration"
+        echo ""
+        echo "Examples:"
+        echo "  $0 status    # Check if CLN is running"
+        echo "  $0 tail      # Watch logs in real-time"
+        echo "  $0 info      # Get node ID and other details"
+        exit 1
+        ;;
+esac
+
+# If no arguments provided, show help
+if [ $# -eq 0 ]; then
+    echo "CLN Management Script"
+    echo "===================="
+    echo "Usage: $0 {start|stop|restart|status|logs|tail|info|version|backup|config}"
+    echo ""
+    echo "Commands:"
+    echo "  start    - Start CLN service"
+    echo "  stop     - Stop CLN service"  
+    echo "  restart  - Restart CLN service"
+    echo "  status   - Show service status"
+    echo "  logs     - Show recent logs"
+    echo "  tail     - Follow logs in real-time"
+    echo "  info     - Show node information"
+    echo "  version  - Show CLN version"
+    echo "  backup   - Create backup of CLN data"
+    echo "  config   - Show current configuration"
+    echo ""
+    echo "Examples:"
+    echo "  $0 status    # Check if CLN is running"
+    echo "  $0 tail      # Watch logs in real-time"
+    echo "  $0 info      # Get node ID and other details"
+    exit 1
+fi
+EOF
+    
+    chown $SUDO_USER:$SUDO_USER /home/$SUDO_USER/scripts/cln-manage
+    chmod +x /home/$SUDO_USER/scripts/cln-manage
+    
+    # Create a symbolic link in /usr/local/bin for system-wide access
+    ln -sf /home/$SUDO_USER/scripts/cln-manage /usr/local/bin/cln-manage
+    
+    print_status "CLN management script created at ~/scripts/cln-manage"
+}
+}
+
+# Function to set up firewall
+setup_firewall() {
+    print_status "Setting up firewall rules..."
+    
+    if command -v ufw &> /dev/null; then
+        # Allow Lightning P2P port
+        ufw allow 9735/tcp comment "Lightning P2P"
+        print_status "UFW rules added for Lightning P2P (port 9735)"
+    elif command -v iptables &> /dev/null; then
+        # Allow Lightning P2P port
+        iptables -A INPUT -p tcp --dport 9735 -j ACCEPT
+        print_status "iptables rules added for Lightning P2P (port 9735)"
+        print_warning "Make sure to save iptables rules permanently"
+    else
+        print_warning "No firewall detected. Consider opening port 9735 for Lightning P2P"
+    fi
+}
+
+# Function to start services
+start_services() {
+    print_status "Starting CLN service..."
+    
+    # Start the service
+    systemctl start lightningd
+    
+    # Wait for startup
+    sleep 5
+    
+    # Check if service is running
+    if systemctl is-active --quiet lightningd; then
+        print_status "CLN service started successfully"
+        
+        # Try to get basic info
+        if sudo -u $CLN_USER /usr/local/bin/lightning-cli getinfo &>/dev/null; then
+            print_status "CLN RPC interface is responding"
+        else
+            print_warning "CLN started but RPC interface not ready yet (this is normal)"
+        fi
+    else
+        print_error "CLN service failed to start"
+        print_error "Check logs with: cln-manage logs"
+        exit 1
+    fi
+}
+
+# Function to show final instructions
+show_final_instructions() {
+    print_status "CLN binary installation completed successfully!"
+    echo
+    echo "What's installed:"
+    echo "================"
+    echo "✓ Core Lightning v$CLN_VERSION (pre-compiled binary)"
+    echo "✓ Basic configuration for Bitcoin Knots"
+    echo "✓ Systemd service"
+    echo "✓ CLI wrapper"
+    echo "✓ Management script"
+    echo "✓ Log rotation"
+    echo
+    echo "Management Commands:"
+    echo "==================="
+    echo "• Service control: ~/scripts/cln-manage {start|stop|restart|status}"
+    echo "• View logs: ~/scripts/cln-manage logs"
+    echo "• Follow logs: ~/scripts/cln-manage tail"
+    echo "• Node info: ~/scripts/cln-manage info"
+    echo "• Show config: ~/scripts/cln-manage config"
+    echo "• Create backup: ~/scripts/cln-manage backup"
+    echo "• Or use system-wide: cln-manage <command>"
+    echo
+    echo "Lightning CLI:"
+    echo "=============="
+    echo "• Check status: lightning-cli getinfo"
+    echo "• View funds: lightning-cli listfunds"
+    echo "• Generate address: lightning-cli newaddr"
+    echo "• List channels: lightning-cli listchannels"
+    echo
+    echo "Next steps:"
+    echo "==========="
+    echo "1. Check service status: ~/scripts/cln-manage status"
+    echo "2. View logs: ~/scripts/cln-manage logs"
+    echo "3. Test CLI: lightning-cli getinfo"
+    echo "4. Wait for Bitcoin sync if needed"
+    echo
+    echo "Optional additional installations:"
+    echo "================================="
+    echo "• For Ocean pool payouts: Run ./install-ocean-bolt12.sh"
+    echo "• For payout monitoring: Run ./install-payout-server.sh"
+    echo
+    echo "Configuration files:"
+    echo "==================="
+    echo "• Main config: $CLN_CONFIG_FILE"
+    echo "• Data directory: $CLN_DATA_DIR"
+    echo "• Log file: $CLN_LOG_FILE"
+    echo "• Management script: ~/scripts/cln-manage"
+    echo
+    echo "To create your first Lightning channel:"
+    echo "1. Fund your node: lightning-cli newaddr"
+    echo "2. Connect to peers: lightning-cli connect <node_id>@<host>:<port>"
+    echo "3. Open channels: lightning-cli fundchannel <node_id> <amount>"
+    echo
+    echo "For more information: https://lightning.readthedocs.io/"
+}
+
+# Main execution
+main() {
+    echo "CLN Binary Installation Script"
+    echo "============================="
+    echo "This installs Core Lightning v$CLN_VERSION using pre-compiled binary"
+    echo "Source: $CLN_BINARY_URL"
+    echo
+    
+    check_root
+    get_rpc_credentials
+    verify_bitcoin
+    install_dependencies
+    install_cln_binary
+    create_cln_user
+    create_cln_config
+    create_systemd_service
+    setup_log_rotation
+    create_cli_wrapper
+    create_management_script
+    setup_firewall
+    start_services
+    show_final_instructions
+}
+
+# Run main function
+main "$@"
